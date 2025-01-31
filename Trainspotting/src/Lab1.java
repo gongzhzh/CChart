@@ -3,19 +3,25 @@ import TSim.*;
 import java.util.concurrent.Semaphore;
 
 public class Lab1 {
-
+    final int semaphores = 9; // we can change this later if we do it with less.
     final int maxSpeed = 20;
     final int[][] sensorPos = {{1, 9}, {1, 11}, {3, 13}, {4, 10},
     {6, 3}, {6, 7}, {8, 5}, {8, 5}, {8, 8}, {10, 7}, {13, 11}, {13, 13},
     {14, 3}, {15, 5}, {15, 10}, {17, 8}, {19, 7}, {19, 9}};
     private TSimInterface tsi = TSimInterface.getInstance();
-    private Semaphore[] semaphoresArr;
+    private Semaphore[] semaphoresArr = new Semaphore[semaphores];
 
     public Lab1(int speed1, int speed2) {
         if (Math.abs(speed1) > maxSpeed || Math.abs(speed2) > maxSpeed) {
             System.out.println("Invalid Speed");
             return;
         }
+
+        // This initializes the semaphores
+        for (int i = 0; i < semaphoresArr.length; i++) {
+        // 1 permit means that only one train can pass at a time.
+        semaphoresArr[i] = new Semaphore(1);
+    }
 
         try {
             Train trainA = new Train(0);
