@@ -114,11 +114,11 @@ public class Lab1 {
             sensorMap = new HashMap<>();
             // Mapped coordinates to sensor IDs. As soon as we finalize the sensor IDs
             // we can turn this into a for loop instead so that it's less code.
-            sensorMap.put("14:3", 1);
+            sensorMap.put("16:3", 1);
             sensorMap.put("6:3", 2);
             sensorMap.put("6:7", 3);
             sensorMap.put("8:5", 4);
-            sensorMap.put("15:5", 5);
+            sensorMap.put("16:5", 5);
             sensorMap.put("8:8", 6);
             sensorMap.put("10:7", 7);
             sensorMap.put("17:8", 8);
@@ -128,9 +128,9 @@ public class Lab1 {
             sensorMap.put("4:10", 12);
             sensorMap.put("1:9", 13);
             sensorMap.put("1:11", 14);
-            sensorMap.put("13:11", 15);
+            sensorMap.put("16:11", 15);
             sensorMap.put("13:13", 16);
-            sensorMap.put("3:13", 17);
+            sensorMap.put("16:13", 17);
         }
 
         public int GetSensorID(int x, int y) {  //DONE(Ergi)
