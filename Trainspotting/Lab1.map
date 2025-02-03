@@ -122,6 +122,6 @@ R 18 13 1 RightStopRail NoSensor
 R 19 7 1 DownLeftRail Sensor
 R 19 8 1 VerticalRail NoSensor
 R 19 9 1 UpLeftRail Sensor
-T 18 7 2 Left
-T 16 7 2 Right
+T 15 3 2 Left
+T 15 11 2 Left
 .

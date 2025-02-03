@@ -4,9 +4,9 @@ import java.util.concurrent.Semaphore;
 
 public class Lab1 {
     final int semaphores = 9; // we can change this later if we do it with less.
-    final int maxSpeed = 20;
-    final int DIRECTION_UP = TSimInterface.SWITCH_LEFT;
-    final int DIRECTION_DOWN = TSimInterface.SWITCH_RIGHT;
+    final int maxSpeed = 40;
+    static final int DIRECTION_DOWN = TSimInterface.SWITCH_LEFT;
+    static final int DIRECTION_UP = TSimInterface.SWITCH_RIGHT;
     final int [] terminalSensor = {1,5,15,17};    // Added the terminal sensor IDs
 
     // // we can remove this later since we have the hashmap in the Rail class.
@@ -31,8 +31,8 @@ public class Lab1 {
     }
 
         try {
-            Train trainA = new Train(0, DIRECTION_UP);
-            Train trainB = new Train(1, DIRECTION_DOWN);
+            Train trainA = new Train(1, DIRECTION_UP);
+            Train trainB = new Train(2, DIRECTION_DOWN);
             Thread tA = new Thread(trainA);
             Thread tB = new Thread(trainB);
             tsi.setSpeed(1, speed1);
@@ -50,6 +50,7 @@ public class Lab1 {
 
         private int trainID;
         private int trainDir;
+        private int trainSpeed;
         public Train(int id, int dir) {
           trainID = id;
           trainDir = dir;
@@ -62,19 +63,20 @@ public class Lab1 {
             while (true) {
                 try {
                     sensorEvent = tsi.getSensor(trainID);
-                    //System.out.println("train" + trainId + " X:" + sensorEvent.getXpos()+ " Y:" + sensorEvent.getYpos());
+                    System.out.println("train" + this.trainID + " X:" + sensorEvent.getXpos()+ " Y:" + sensorEvent.getYpos());
                     sensorID = rail.GetSensorID(sensorEvent.getXpos(), sensorEvent.getYpos());
                     
                     rail.ReleaseSemaphore(sensorID, trainDir);
-                    if (rail.IsTerminalSensor(sensorID)){
-                        stop();
-                        turnAround();
-                        continue;
-                    } 
-
+                    System.out.println("before stop!!!!!!");
+                    // if (rail.IsTerminalSensor(sensorID)){
+                    //     System.out.println("stop!!!!!!");
+                    //     stop();
+                    //     turnAround();
+                    //     continue;
+                    // } 
+                    SwitchPoint(sensorID, this.trainDir);
                     //Try to acquire the next rail's semaphore
-                    aqcuireSem(sensorID, this.trainDir);
-
+                    //aqcuireSem(sensorID, this.trainDir);
                     //switch
                     
                     
@@ -98,11 +100,40 @@ public class Lab1 {
         }
 
         private void turnAround(){  // TODO!
-
+            
         }
         
         private void aqcuireSem(int sensorID, int dir){
-            int semID = Rail.getNextSemaphore(sensorID, dir);
+            try{
+                int semID = Rail.getNextSemaphore(sensorID, dir);
+                if (semID != -1) {
+                    Semaphore s = semaphoresArr[semID];
+                    s.acquire();
+                    SwitchPoint(sensorID, dir);
+                }
+            }catch(InterruptedException ex){
+                ex.printStackTrace();
+            }
+        }
+
+        private void SwitchPoint(int sensorID, int dir){
+            try {
+                if (sensorID == 12 && dir == DIRECTION_DOWN) {
+                    tsi.setSwitch(4, 9, DIRECTION_DOWN);
+                }
+                if  (sensorID == 18 && dir == DIRECTION_UP){
+                    tsi.setSwitch(15, 9, DIRECTION_DOWN);
+                }
+                if (sensorID == 8 && dir == DIRECTION_DOWN) {
+                    tsi.setSwitch(17, 7, DIRECTION_DOWN);
+                }
+                if (sensorID == 7 && dir == DIRECTION_UP) {
+                    tsi.setSwitch(17, 7, DIRECTION_DOWN);
+                }
+                
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
         
     }
@@ -158,7 +189,18 @@ public class Lab1 {
         }
 
         public static int getNextSemaphore(int sensorID, int dir){
-            return 0;
+            if (sensorID == 14 && dir == DIRECTION_UP) {
+                return 0;
+            }
+
+            if (sensorID == 13 && dir == DIRECTION_UP) {
+                return 2;
+            }
+            
+            if (sensorID == 11 && dir == DIRECTION_UP) {
+                return 4;
+            }           
+            return -1;
         }
     }
 }
