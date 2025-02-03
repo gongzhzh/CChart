@@ -64,16 +64,20 @@ public class Lab1 {
                     sensorEvent = tsi.getSensor(trainID);
                     //System.out.println("train" + trainId + " X:" + sensorEvent.getXpos()+ " Y:" + sensorEvent.getYpos());
                     sensorID = rail.GetSensorID(sensorEvent.getXpos(), sensorEvent.getYpos());
+                    
                     rail.ReleaseSemaphore(sensorID, trainDir);
                     if (rail.IsTerminalSensor(sensorID)){
                         stop();
                         turnAround();
                         continue;
-                    }
-                    
-                    //Try to acquire the next rail's semaphore
-                    
+                    } 
 
+                    //Try to acquire the next rail's semaphore
+                    aqcuireSem(sensorID, this.trainDir);
+
+                    //switch
+                    
+                    
 
                 } catch (CommandException e) {
                     e.printStackTrace();    // or only e.getMessage() for the error
@@ -97,8 +101,8 @@ public class Lab1 {
 
         }
         
-        private boolean aqcuireSem(int sensorID, int dir){
-            return false;
+        private void aqcuireSem(int sensorID, int dir){
+            int semID = Rail.getNextSemaphore(sensorID, dir);
         }
         
     }
@@ -153,7 +157,7 @@ public class Lab1 {
             return false;
         }
 
-        public int getNextSemaphore(int sensorID, int dir){
+        public static int getNextSemaphore(int sensorID, int dir){
             return 0;
         }
     }
