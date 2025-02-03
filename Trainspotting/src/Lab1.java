@@ -9,10 +9,10 @@ public class Lab1 {
     final int DIRECTION_DOWN = TSimInterface.SWITCH_RIGHT;
     final int [] terminalSensor = {1,5,15,17};    // Added the terminal sensor IDs
 
-    // we can remove this later since we have the hashmap in the Rail class.
-    final int[][] sensorPos = {{1, 9}, {1, 11}, {3, 13}, {4, 10},
-    {6, 3}, {6, 7}, {8, 5}, {8, 5}, {8, 8}, {10, 7}, {13, 11}, {13, 13},
-    {14, 3}, {15, 5}, {15, 10}, {17, 8}, {19, 7}, {19, 9}};
+    // // we can remove this later since we have the hashmap in the Rail class.
+    // final int[][] sensorPos = {{1, 9}, {1, 11}, {3, 13}, {4, 10},
+    // {6, 3}, {6, 7}, {8, 5}, {8, 5}, {8, 8}, {10, 7}, {13, 11}, {13, 13},
+    // {14, 3}, {15, 5}, {15, 10}, {17, 8}, {19, 7}, {19, 9}};
 
     private TSimInterface tsi = TSimInterface.getInstance();
     private Semaphore[] semaphoresArr = new Semaphore[semaphores];
@@ -55,7 +55,7 @@ public class Lab1 {
           trainDir = dir;
         }
 
-        //This function controls the 
+        //This function controls the behavior of the train
         public void run() {         // Gong is Working on this method - 1/31
             SensorEvent sensorEvent;
             int sensorID;
@@ -67,8 +67,13 @@ public class Lab1 {
                     rail.ReleaseSemaphore(sensorID, trainDir);
                     if (rail.IsTerminalSensor(sensorID)){
                         stop();
+                        turnAround();
+                        continue;
                     }
                     
+                    //Try to acquire the next rail's semaphore
+                    
+
 
                 } catch (CommandException e) {
                     e.printStackTrace();    // or only e.getMessage() for the error
@@ -87,6 +92,15 @@ public class Lab1 {
             } 
             return 0;
         }
+
+        private void turnAround(){  // TODO!
+
+        }
+        
+        private boolean aqcuireSem(int sensorID, int dir){
+            return false;
+        }
+        
     }
 
     public class Rail{
@@ -125,7 +139,7 @@ public class Lab1 {
             return sensorID;
         }
 
-        //This method releases the next semaphore by sensor id and dirction of the train.
+        //This method releases the last semaphore by sensor id and dirction of the train.
         public int ReleaseSemaphore(int sensorID, int dir) {            //TODO!
             return 0;        
         }
@@ -139,5 +153,8 @@ public class Lab1 {
             return false;
         }
 
+        public int getNextSemaphore(int sensorID, int dir){
+            return 0;
+        }
     }
 }
