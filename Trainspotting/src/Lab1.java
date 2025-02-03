@@ -9,11 +9,6 @@ public class Lab1 {
     final int DIRECTION_DOWN = TSimInterface.SWITCH_RIGHT;
     final int [] terminalSensor = {1,5,15,17};    // Added the terminal sensor IDs
 
-    // // we can remove this later since we have the hashmap in the Rail class.
-    // final int[][] sensorPos = {{1, 9}, {1, 11}, {3, 13}, {4, 10},
-    // {6, 3}, {6, 7}, {8, 5}, {8, 5}, {8, 8}, {10, 7}, {13, 11}, {13, 13},
-    // {14, 3}, {15, 5}, {15, 10}, {17, 8}, {19, 7}, {19, 9}};
-
     private TSimInterface tsi = TSimInterface.getInstance();
     private Semaphore[] semaphoresArr = new Semaphore[semaphores];
     private Rail rail = new Rail();
@@ -31,13 +26,16 @@ public class Lab1 {
     }
 
         try {
-            Train trainA = new Train(0, DIRECTION_UP);
-            Train trainB = new Train(1, DIRECTION_DOWN);
+            Train trainA = new Train(1, DIRECTION_UP,2);
+            Train trainB = new Train(2, DIRECTION_DOWN,1);
             Thread tA = new Thread(trainA);
             Thread tB = new Thread(trainB);
             tsi.setSpeed(1, speed1);
             tsi.setSpeed(2, speed2);
-            tsi.setSwitch(15, 9, DIRECTION_DOWN);     //test code, don't forget to remove it
+            tsi.setSwitch(15, 9, DIRECTION_DOWN);
+            tsi.setSwitch(17, 7, DIRECTION_UP);     //test code, don't forget to remove it
+            tsi.setSwitch(4, 9, DIRECTION_UP);
+            tsi.setSwitch(3, 11, DIRECTION_UP); 
             tA.start();
             tB.start();
         } catch (CommandException e) {
@@ -47,10 +45,9 @@ public class Lab1 {
     }
     
     public class Train implements Runnable {
-
         private int trainID;
         private int trainDir;
-        public Train(int id, int dir) {
+        public Train(int id, int dir, int dest) {
           trainID = id;
           trainDir = dir;
         }
@@ -66,7 +63,7 @@ public class Lab1 {
                     sensorID = rail.GetSensorID(sensorEvent.getXpos(), sensorEvent.getYpos());
                     
                     rail.ReleaseSemaphore(sensorID, trainDir);
-                    if (rail.IsTerminalSensor(sensorID)){
+                    if (rail.IsTerminalSensor(sensorID, trainDir)) {
                         stop();
                         turnAround();
                         continue;
@@ -87,10 +84,11 @@ public class Lab1 {
 
             }
         }
-
+        
         private int stop(){ //DONE(Ergi)
             try {
-                tsi.setSpeed(trainID, 0);
+                tsi.setSpeed(this.trainID, 0);
+
             } catch (CommandException e) {
                 e.printStackTrace();
             } 
@@ -98,7 +96,11 @@ public class Lab1 {
         }
 
         private void turnAround(){  // TODO!
-
+            if(this.trainDir == DIRECTION_UP){
+                this.trainDir = DIRECTION_DOWN;
+            } else{
+                this.trainDir = DIRECTION_UP;
+            }
         }
         
         private void aqcuireSem(int sensorID, int dir){
@@ -148,9 +150,16 @@ public class Lab1 {
             return 0;        
         }
 
-        public boolean IsTerminalSensor(int sensorID) { //DONE(Ergi)
-            for (int termSensor : terminalSensor) {
-                if (termSensor == sensorID) {
+        // this method is for checking if the train is at the terminal it's supposed to be
+        public boolean IsTerminalSensor(int sensorID, int dir) { //DONE(Ergi)
+            if (dir == DIRECTION_DOWN) {
+                // Check if sensorID matches one of the first two terminal sensor values.
+                if (sensorID == terminalSensor[0] || sensorID == terminalSensor[1]) {
+                    return true;
+                }
+            } else if (dir == DIRECTION_UP) {
+                // Check if sensorID matches one of the last two terminal sensor values.
+                if (sensorID == terminalSensor[2] || sensorID == terminalSensor[3]) {
                     return true;
                 }
             }
