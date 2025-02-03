@@ -103,6 +103,7 @@ public class Lab1 {
             } else{
                 this.trainDir = DIRECTION_UP;
             }
+
         }
         
         private void aqcuireSem(int sensorID, int dir){
