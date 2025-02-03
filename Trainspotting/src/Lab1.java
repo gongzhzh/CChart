@@ -4,7 +4,7 @@ import java.util.concurrent.Semaphore;
 
 public class Lab1 {
     final int semaphores = 9; // we can change this later if we do it with less.
-    final int maxSpeed = 40;
+    final int maxSpeed = 20;
     static final int DIRECTION_DOWN = TSimInterface.SWITCH_LEFT;
     static final int DIRECTION_UP = TSimInterface.SWITCH_RIGHT;
     final int [] terminalSensor = {1,5,15,17};    // Added the terminal sensor IDs
@@ -33,10 +33,10 @@ public class Lab1 {
             Thread tB = new Thread(trainB);
             tsi.setSpeed(1, speed1);
             tsi.setSpeed(2, speed2);
-            tsi.setSwitch(15, 9, DIRECTION_DOWN);
-            tsi.setSwitch(17, 7, DIRECTION_UP);     //test code, don't forget to remove it
-            tsi.setSwitch(4, 9, DIRECTION_UP);
-            tsi.setSwitch(3, 11, DIRECTION_UP); 
+            tsi.setSwitch(15, 9, DIRECTION_UP);
+            tsi.setSwitch(17, 7, DIRECTION_DOWN);     //test code, don't forget to remove it
+            tsi.setSwitch(4, 9, DIRECTION_DOWN);
+            tsi.setSwitch(3, 11, DIRECTION_DOWN); 
             tA.start();
             tB.start();
         } catch (CommandException e) {
@@ -147,11 +147,11 @@ public class Lab1 {
             sensorMap = new HashMap<>();
             // Mapped coordinates to sensor IDs. As soon as we finalize the sensor IDs
             // we can turn this into a for loop instead so that it's less code.
-            sensorMap.put("16:3", 1);
+            sensorMap.put("15:3", 1);
             sensorMap.put("6:3", 2);
             sensorMap.put("6:7", 3);
             sensorMap.put("8:5", 4);
-            sensorMap.put("16:5", 5);
+            sensorMap.put("15:5", 5);
             sensorMap.put("8:8", 6);
             sensorMap.put("10:7", 7);
             sensorMap.put("17:8", 8);
@@ -161,9 +161,9 @@ public class Lab1 {
             sensorMap.put("4:10", 12);
             sensorMap.put("1:9", 13);
             sensorMap.put("1:11", 14);
-            sensorMap.put("16:11", 15);
+            sensorMap.put("15:11", 15);
             sensorMap.put("13:13", 16);
-            sensorMap.put("16:13", 17);
+            sensorMap.put("15:13", 17);
         }
 
         public int GetSensorID(int x, int y) {  //DONE(Ergi)
