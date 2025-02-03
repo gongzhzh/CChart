@@ -1,5 +1,5 @@
-
 import TSim.*;
+import java.util.HashMap;
 import java.util.concurrent.Semaphore;
 
 public class Lab1 {
@@ -7,10 +7,13 @@ public class Lab1 {
     final int maxSpeed = 20;
     final int DIRECTION_UP = TSimInterface.SWITCH_LEFT;
     final int DIRECTION_DOWN = TSimInterface.SWITCH_RIGHT;
-    final int [] terminalSensor = {1,2,3,4};    //TODO! modify this later
+    final int [] terminalSensor = {1,5,15,17};    // Added the terminal sensor IDs
+
+    // we can remove this later since we have the hashmap in the Rail class.
     final int[][] sensorPos = {{1, 9}, {1, 11}, {3, 13}, {4, 10},
     {6, 3}, {6, 7}, {8, 5}, {8, 5}, {8, 8}, {10, 7}, {13, 11}, {13, 13},
     {14, 3}, {15, 5}, {15, 10}, {17, 8}, {19, 7}, {19, 9}};
+
     private TSimInterface tsi = TSimInterface.getInstance();
     private Semaphore[] semaphoresArr = new Semaphore[semaphores];
     private Rail rail = new Rail();
@@ -76,14 +79,50 @@ public class Lab1 {
             }
         }
 
-        private int stop(){
+        private int stop(){ //DONE(Ergi)
+            try {
+                tsi.setSpeed(trainID, 0);
+            } catch (CommandException e) {
+                e.printStackTrace();
+            } 
             return 0;
         }
     }
 
     public class Rail{
-        public int GetSensorID(int x, int y) {  //TODO!
-            return 0;
+        private final HashMap<String, Integer> sensorMap;
+
+        public Rail() { //DONE(Ergi)
+            sensorMap = new HashMap<>();
+            // Mapped coordinates to sensor IDs. As soon as we finalize the sensor IDs
+            // we can turn this into a for loop instead so that it's less code.
+            sensorMap.put("14:3", 1);
+            sensorMap.put("6:3", 2);
+            sensorMap.put("6:7", 3);
+            sensorMap.put("8:5", 4);
+            sensorMap.put("15:5", 5);
+            sensorMap.put("8:8", 6);
+            sensorMap.put("10:7", 7);
+            sensorMap.put("17:8", 8);
+            sensorMap.put("19:7", 9);
+            sensorMap.put("19:9", 10);
+            sensorMap.put("15:10", 11);
+            sensorMap.put("4:10", 12);
+            sensorMap.put("1:9", 13);
+            sensorMap.put("1:11", 14);
+            sensorMap.put("13:11", 15);
+            sensorMap.put("13:13", 16);
+            sensorMap.put("3:13", 17);
+        }
+
+        public int GetSensorID(int x, int y) {  //DONE(Ergi)
+        String key = x + ":" + y;
+            Integer sensorID = sensorMap.get(key);
+            if (sensorID == null) {
+                System.out.println("Sensor not found for coordinates: " + key);
+                return -1;  // Return an invalid sensor ID if the sesnor does not exist.
+            }
+            return sensorID;
         }
 
         //This method releases the next semaphore by sensor id and dirction of the train.
@@ -91,7 +130,12 @@ public class Lab1 {
             return 0;        
         }
 
-        public boolean IsTerminalSensor(int sensorID){     //TODO!
+        public boolean IsTerminalSensor(int sensorID) { //DONE(Ergi)
+            for (int termSensor : terminalSensor) {
+                if (termSensor == sensorID) {
+                    return true;
+                }
+            }
             return false;
         }
 
