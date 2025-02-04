@@ -3,10 +3,9 @@ import java.util.AbstractMap;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Semaphore;
-
 public class Lab1 {
 
-    final int semaphores = 9; // we can change this later if we do it with less.
+    final int semaphores = 8; // we can change this later if we do it with less.
     final int maxSpeed = 20;
     static final int DIRECTION_DOWN = TSimInterface.SWITCH_LEFT;
     static final int DIRECTION_UP = TSimInterface.SWITCH_RIGHT;
@@ -51,21 +50,51 @@ public class Lab1 {
             semaphoresArr[i] = new Semaphore(1);
         }
 
-        Map.Entry<Integer, Integer> key = new AbstractMap.SimpleEntry<>(16, DIRECTION_DOWN);
+        Map.Entry<Integer, Integer> key = new AbstractMap.SimpleEntry<>(3, DIRECTION_UP);
+        // semaphore 8
+        semaphoreMap.put(key, semaphoresArr[7]); 
+        key = new AbstractMap.SimpleEntry<>(4, DIRECTION_UP);
+        semaphoreMap.put(key, semaphoresArr[7]);
+        key = new AbstractMap.SimpleEntry<>(6, DIRECTION_DOWN);
+        semaphoreMap.put(key, semaphoresArr[7]);
+        key = new AbstractMap.SimpleEntry<>(7, DIRECTION_DOWN);
+        semaphoreMap.put(key, semaphoresArr[7]);
+
+        // semaphore 7
+        key = new AbstractMap.SimpleEntry<>(7, DIRECTION_DOWN);
+        semaphoreMap.put(key, semaphoresArr[6]);
+        key = new AbstractMap.SimpleEntry<>(3, DIRECTION_UP);
+        semaphoreMap.put(key, semaphoresArr[6]);
+
+        // semaphore 6
+        key = new AbstractMap.SimpleEntry<>(9, DIRECTION_UP);
+        semaphoreMap.put(key, semaphoresArr[5]);
+
+        // semaphore 5
+        key = new AbstractMap.SimpleEntry<>(7, DIRECTION_DOWN);
+        semaphoreMap.put(key, semaphoresArr[4]);
+        key = new AbstractMap.SimpleEntry<>(9, DIRECTION_UP);
+        semaphoreMap.put(key, semaphoresArr[4]);
+
+        // semaphore 4
+        key = new AbstractMap.SimpleEntry<>(18, DIRECTION_DOWN);
+        semaphoreMap.put(key, semaphoresArr[3]);
+        
+        // semaphore 3
+        key = new AbstractMap.SimpleEntry<>(13, DIRECTION_DOWN);
+        semaphoreMap.put(key, semaphoresArr[2]);
+
+        // semaphore 2
+        key = new AbstractMap.SimpleEntry<>(10, DIRECTION_UP);
+        semaphoreMap.put(key, semaphoresArr[1]);
+
+        // semaphore 1
+        key = new AbstractMap.SimpleEntry<>(16, DIRECTION_DOWN);
         semaphoreMap.put(key, semaphoresArr[0]);
         key = new AbstractMap.SimpleEntry<>(12, DIRECTION_UP);
         semaphoreMap.put(key, semaphoresArr[0]);
         key = new AbstractMap.SimpleEntry<>(18, DIRECTION_UP);
         semaphoreMap.put(key, semaphoresArr[0]);
-
-        key = new AbstractMap.SimpleEntry<>(10, DIRECTION_UP);
-        semaphoreMap.put(key, semaphoresArr[1]);
-
-        key = new AbstractMap.SimpleEntry<>(13, DIRECTION_DOWN);
-        semaphoreMap.put(key, semaphoresArr[2]);
-
-        key = new AbstractMap.SimpleEntry<>(18, DIRECTION_DOWN);
-        semaphoreMap.put(key, semaphoresArr[3]);
     }
 
     public int GetSensorID(int x, int y) {  //DONE(Ergi)
@@ -85,10 +114,6 @@ public class Lab1 {
         }
 
         // This initializes the semaphores
-        // for (int i = 0; i < semaphoresArr.length; i++) {
-        //     // 1 permit means that only one train can pass at a time.
-        //     semaphoresArr[i] = new Semaphore(1);
-        // }
         initializeSemaphores();
         initialize();
         Train trainA = new Train(1, DIRECTION_UP);
@@ -99,10 +124,6 @@ public class Lab1 {
         try {
             trainA.setSpeed(speed1);
             trainB.setSpeed(speed2);
-            // tsi.setSwitch(15, 9, DIRECTION_UP);
-            // tsi.setSwitch(17, 7, DIRECTION_DOWN);     //test code, don't forget to remove it
-            // tsi.setSwitch(4, 9, DIRECTION_DOWN);
-            // tsi.setSwitch(3, 11, DIRECTION_DOWN);
             tA.start();
             tB.start();
         } catch (Exception e) {
