@@ -1,6 +1,6 @@
-
 import TSim.*;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.Semaphore;
 
 public class Lab1 {
@@ -14,10 +14,12 @@ public class Lab1 {
     private TSimInterface tsi = TSimInterface.getInstance();
     private Semaphore[] semaphoresArr = new Semaphore[semaphores];
     private Rail rail = new Rail();
+    private static final HashMap<Map.Entry<Integer, Integer>, Integer> semaphoreMap = new HashMap<>();
 
-    //Moved this hashmap out, otherwise this can't be accessed by train objects
+    // Moved this hashmap out, otherwise this can't be accessed by train objects
+    // private static final HashMap<String, Integer> sensorMap = new HashMap<>();
     private static final HashMap<String, Integer> sensorMap = new HashMap<>();
-
+    
     private void initialize() {
         // Mapped coordinates to sensor IDs. As soon as we finalize the sensor IDs
         // we can turn this into a for loop instead so that it's less code.
@@ -39,6 +41,15 @@ public class Lab1 {
         sensorMap.put("13:13", 16);
         sensorMap.put("15:13", 17);
         sensorMap.put("13:9", 18);
+    }
+
+    private void initializeSemaphores() {
+        // Initialize the semaphores
+        for (int i = 0; i < semaphoresArr.length; i++) {
+            // 1 permit means that only one train can pass at a time.
+            semaphoresArr[i] = new Semaphore(1);
+        }
+
     }
 
     public int GetSensorID(int x, int y) {  //DONE(Ergi)
@@ -153,10 +164,10 @@ public class Lab1 {
         private void aqcuireSem(int sensorID, int dir) throws CommandException, InterruptedException {
             int semID = Rail.getNextSemaphore(sensorID, dir);
             if (semID != -1) {
-                Semaphore s = semaphoresArr[semID];
-                s.acquire();
-                SwitchPoint(sensorID, dir);
+                return;
             }
+            Semaphore s = semaphoresArr[semID];
+            s.acquire();
         }
 
         private void SwitchPoint(int sensorID, int dir) throws CommandException {
@@ -179,7 +190,6 @@ public class Lab1 {
                 tsi.setSwitch(17, 7, DIRECTION_DOWN);
             }
             if (sensorID == 7 && dir == DIRECTION_UP) {
-                System.out.println("1111111");
                 tsi.setSwitch(17, 7, DIRECTION_UP);
             }
             if (sensorID == 16 && dir == DIRECTION_DOWN) {
@@ -192,19 +202,18 @@ public class Lab1 {
                 tsi.setSwitch(3, 11, DIRECTION_UP);
             }
         }
-
     }
 
     public class Rail {
         //moved this piece of code to outside of this class, so that the hash map can be called by other class
         // private final HashMap<String, Integer> sensorMap = new HashMap<>();
-
         public Rail() { //DONE(Ergi)
 
         }
 
         //This method releases the last semaphore by sensor id and dirction of the train.
         public int ReleaseSemaphore(int sensorID, int dir) {            //TODO!
+
             return 0;
         }
 
@@ -236,6 +245,7 @@ public class Lab1 {
             if (sensorID == 11 && dir == DIRECTION_UP) {
                 return 4;
             }
+
             return -1;
         }
     }
