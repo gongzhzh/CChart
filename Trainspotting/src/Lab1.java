@@ -1,4 +1,5 @@
 import TSim.*;
+import java.util.AbstractMap;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Semaphore;
@@ -14,7 +15,7 @@ public class Lab1 {
     private TSimInterface tsi = TSimInterface.getInstance();
     private Semaphore[] semaphoresArr = new Semaphore[semaphores];
     private Rail rail = new Rail();
-    private static final HashMap<Map.Entry<Integer, Integer>, Integer> semaphoreMap = new HashMap<>();
+    private static final HashMap<Map.Entry<Integer, Integer>, Semaphore> semaphoreMap = new HashMap<>();
 
     // Moved this hashmap out, otherwise this can't be accessed by train objects
     // private static final HashMap<String, Integer> sensorMap = new HashMap<>();
@@ -50,6 +51,21 @@ public class Lab1 {
             semaphoresArr[i] = new Semaphore(1);
         }
 
+        Map.Entry<Integer, Integer> key = new AbstractMap.SimpleEntry<>(16, DIRECTION_DOWN);
+        semaphoreMap.put(key, semaphoresArr[0]);
+        key = new AbstractMap.SimpleEntry<>(12, DIRECTION_UP);
+        semaphoreMap.put(key, semaphoresArr[0]);
+        key = new AbstractMap.SimpleEntry<>(18, DIRECTION_UP);
+        semaphoreMap.put(key, semaphoresArr[0]);
+
+        key = new AbstractMap.SimpleEntry<>(10, DIRECTION_UP);
+        semaphoreMap.put(key, semaphoresArr[1]);
+
+        key = new AbstractMap.SimpleEntry<>(13, DIRECTION_DOWN);
+        semaphoreMap.put(key, semaphoresArr[2]);
+
+        key = new AbstractMap.SimpleEntry<>(18, DIRECTION_DOWN);
+        semaphoreMap.put(key, semaphoresArr[3]);
     }
 
     public int GetSensorID(int x, int y) {  //DONE(Ergi)
@@ -69,10 +85,11 @@ public class Lab1 {
         }
 
         // This initializes the semaphores
-        for (int i = 0; i < semaphoresArr.length; i++) {
-            // 1 permit means that only one train can pass at a time.
-            semaphoresArr[i] = new Semaphore(1);
-        }
+        // for (int i = 0; i < semaphoresArr.length; i++) {
+        //     // 1 permit means that only one train can pass at a time.
+        //     semaphoresArr[i] = new Semaphore(1);
+        // }
+        initializeSemaphores();
         initialize();
         Train trainA = new Train(1, DIRECTION_UP);
         Train trainB = new Train(2, DIRECTION_DOWN);
@@ -127,8 +144,8 @@ public class Lab1 {
                         continue;
                     }
                     //Try to acquire the next rail's semaphore
-                    //aqcuireSem(sensorID, this.trainDir);
-                    SwitchPoint(sensorID, this.trainDir);
+                    aqcuireSem(sensorID, this.trainDir);
+                    //SwitchPoint(sensorID, this.trainDir);
 
                 } catch (CommandException e) {
                     e.printStackTrace();    // or only e.getMessage() for the error
@@ -162,12 +179,11 @@ public class Lab1 {
         }
 
         private void aqcuireSem(int sensorID, int dir) throws CommandException, InterruptedException {
-            int semID = Rail.getNextSemaphore(sensorID, dir);
-            if (semID != -1) {
+            Semaphore sem = Rail.getNextSemaphore(sensorID, dir);
+            if (sem != null) {
                 return;
             }
-            Semaphore s = semaphoresArr[semID];
-            s.acquire();
+            sem.acquire();
         }
 
         private void SwitchPoint(int sensorID, int dir) throws CommandException {
@@ -213,7 +229,8 @@ public class Lab1 {
 
         //This method releases the last semaphore by sensor id and dirction of the train.
         public int ReleaseSemaphore(int sensorID, int dir) {            //TODO!
-
+            Semaphore sem = getNextSemaphore(sensorID, dir);
+            sem.release();
             return 0;
         }
 
@@ -233,20 +250,9 @@ public class Lab1 {
             return false;
         }
 
-        public static int getNextSemaphore(int sensorID, int dir) {
-            if (sensorID == 14 && dir == DIRECTION_UP) {
-                return 0;
-            }
-
-            if (sensorID == 13 && dir == DIRECTION_UP) {
-                return 2;
-            }
-
-            if (sensorID == 11 && dir == DIRECTION_UP) {
-                return 4;
-            }
-
-            return -1;
+        public static Semaphore getNextSemaphore(int sensorID, int dir) {
+            Map.Entry<Integer, Integer> key = new AbstractMap.SimpleEntry<>(sensorID, dir);
+            return semaphoreMap.get(key);
         }
     }
 }
