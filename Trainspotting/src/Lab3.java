@@ -5,7 +5,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Semaphore;
 
-public class Lab1 {
+public class Lab3 {
 
     final int semaphores = 9; // we can change this later if we do it with less.
     final int maxSpeed = 20;
@@ -91,6 +91,7 @@ public class Lab1 {
         String key = x + ":" + y;
         Integer sensorID = sensorMap.get(key);
         if (sensorID == null) {
+            System.out.println("Sensor not found for coordinates: " + key);
             return -1;  // Return an invalid sensor ID if the sesnor does not exist.
         }
         return sensorID;
@@ -108,8 +109,11 @@ public class Lab1 {
         };
     }
 
-    public Lab1(int speed1, int speed2) {
-        if (Math.abs(speed1) > maxSpeed || Math.abs(speed2) > maxSpeed) return;
+    public Lab3(int speed1, int speed2) {
+        if (Math.abs(speed1) > maxSpeed || Math.abs(speed2) > maxSpeed) {
+            System.out.println("Invalid Speed");
+            return;
+        }
         // This initializes the semaphores
         initializeSemaphores();
         initializeSensors();
@@ -130,7 +134,8 @@ public class Lab1 {
 
     public class Train implements Runnable {
         private final int trainID;
-        private int trainDir, trainSpeed;
+        private int trainDir;
+        private int trainSpeed;
         private int currSemIdx = -1;
         private int prevSemIdx = -1;
         private int holdForkSemIdx = -1;
@@ -152,19 +157,27 @@ public class Lab1 {
             while (true) {
                 try {
                     sensorEvent = tsi.getSensor(trainID);
-                    if (sensorEvent.getStatus() != SensorEvent.ACTIVE) continue;
+                    //System.err.println("train sensorEvent1 trainid " + this.trainID + " X:" + sensorEvent.getXpos() + " Y:" + sensorEvent.getYpos() + "dir:" + this.trainDir + "state:" + sensorEvent.getStatus());
+                    if (sensorEvent.getStatus() != SensorEvent.ACTIVE) {
+                        continue;
+                    }
                     sensorSeq = GetSensorSeq(sensorEvent.getXpos(), sensorEvent.getYpos());
                     if (sensorSeq == 15 && isFirst) {
                         this.prevSemIdx = 7;
                         isFirst = false;
                     }
+                    //System.out.println("train sensorEvent2 trainid " + this.trainID + " X:" + sensorEvent.getXpos() + " Y:" + sensorEvent.getYpos() + "sensorID:" + sensorSeq + "dir:" + this.trainDir + "state:" + sensorEvent.getStatus());
                     if (rail.IsTerminalSensor(sensorSeq, trainDir)) {
                         stop();
                         turnAround();
                         continue;
                     }
-                    if (ReleaseSemaphore(sensorSeq, trainDir, this.prevSemIdx) == 0) this.prevSemIdx = -1;
+                    if (ReleaseSemaphore(sensorSeq, trainDir, this.prevSemIdx) == 0) {
+                        this.prevSemIdx = -1;
+                    }
+
                     aqcuireSem(sensorSeq, this.trainDir);
+
                 } catch (CommandException e) {
                     e.printStackTrace();    // or only e.getMessage() for the error
                 } catch (InterruptedException ex) {
@@ -192,12 +205,15 @@ public class Lab1 {
             Integer semIdx = Rail.getNextSemaphoreID(sensorSeq, dir);
             boolean isDefault = true;
             Integer semForkIdx = -1;
+            System.out.println("before aqcuireSem sensorSeq: " + sensorSeq + " Direction: " + dir + " trainID " + this.trainID + "prevSemIdx: " + this.prevSemIdx + "currSemIdx: " + this.currSemIdx);
             this.prevSemIdx = this.currSemIdx;
             //try to acquire the semaphore, if it's not available, stop the train and wait until it's available
             if (semIdx == -1 || semIdx == null) {
+                System.out.println("Semaphore not found for sensorSeq: " + sensorSeq + " Direction: " + dir);
                 this.currSemIdx = -1;
                 return;
             }
+            System.err.println("aqcuireSem semaphoreID: " + semIdx + " sensorSeq: " + sensorSeq + " Direction: " + dir);
             Semaphore sem = semaphoresArr[semIdx];
             if (sem.tryAcquire()) {
                 System.out.println("tryAcquire semaphore for sensorSeq: " + sensorSeq + " Direction: " + dir + " trainID " + this.trainID + "semID: " + semIdx);
@@ -206,13 +222,27 @@ public class Lab1 {
                     if (IsForkSensor(sensorSeq, dir)) {
                         isDefault = false;
                         semForkIdx = getForkSemaphoreIdx(semIdx);
-                        if (semForkIdx == -1)    break;
+                        if (semForkIdx == -1) {
+                            System.err.println("Fork semaphore not found for sensorSeq: " + sensorSeq + " Direction: "
+                                    + dir + " trainID " + this.trainID + "semID: " + semIdx);
+                            break;
+                        }
                         sem = semaphoresArr[semForkIdx];
-                        if (sem.tryAcquire()) break;
+                        if (sem.tryAcquire()) {
+                            System.out.println("tryAcquire semaphore for sensorSeq: " + sensorSeq + " Direction: " + dir
+                                    + " trainID " + this.trainID + "semID: " + semIdx);
+                            break;
+                        }
                     }
                     stop();
+                    System.out.println("Acquiring semaphore for sensorSeq: " + sensorSeq + " Direction: " + dir
+                            + " trainID " + this.trainID + "semID: " + semIdx);
                     sem.acquire();
+
+                    System.out.println("Acquired semaphore for sensorSeq: " + sensorSeq + " Direction: " + dir
+                            + " trainID " + this.trainID + "semID: " + semIdx);
                 } while (false);
+
             }
 
             if (isDefault) {
@@ -225,14 +255,21 @@ public class Lab1 {
                 this.prevSemIdx = -1;
                 System.out.println("HoldForkSemIdx: " + this.holdForkSemIdx);
             }
+
+
             SetSwitch(isDefault, sensorSeq, dir);
             setSpeed(this.trainSpeed);
         }
 
-        // Sets the switch direction based on the given parameters.
+        /**
+         * Sets the switch direction based on the given parameters.
+         */
         private void SetSwitch(boolean isDefault, int sensorID, int dir) throws CommandException {
-            if (isDefault) setSwitchDefault(sensorID, dir);
-             else SetSwitchAlt(sensorID, dir);
+            if (isDefault) {
+                setSwitchDefault(sensorID, dir);
+            } else {
+                SetSwitchAlt(sensorID, dir);
+            }
         }
 
         private boolean IsForkSensor(int sensorID, int dir) {
@@ -240,6 +277,7 @@ public class Lab1 {
         }
 
         private void SetSwitchAlt(int sensorID, int dir) throws CommandException {
+            System.out.println("SetSwitchAlt SensorID: " + sensorID + " Direction: " + dir + " trainID: " + this.trainID + " current semaphore ID: " + this.currSemIdx + " previous semaphore ID: " + this.prevSemIdx);
             if (sensorID == 13 && dir == DIRECTION_UP) {
                 tsi.setSwitch(SWITCH_POINT_1_X, SWITCH_POINT_1_Y, DIRECTION_UP);
             }
@@ -255,6 +293,7 @@ public class Lab1 {
         }
 
         private void setSwitchDefault(int sensorID, int dir) throws CommandException {
+            System.out.println("setSwitchDefault SensorID: " + sensorID + " Direction: " + dir + "trainID " + this.trainID);
             if (sensorID == 12 && dir == DIRECTION_UP) {
                 tsi.setSwitch(SWITCH_POINT_2_X, SWITCH_POINT_2_Y, DIRECTION_UP);
             }
@@ -270,6 +309,7 @@ public class Lab1 {
             if (sensorID == 11 && dir == DIRECTION_DOWN) {
                 tsi.setSwitch(SWITCH_POINT_3_X, SWITCH_POINT_3_Y, DIRECTION_DOWN);
             }
+            //////////////////////////
             if (sensorID == 9 && dir == DIRECTION_UP) {
                 tsi.setSwitch(SWITCH_POINT_3_X, SWITCH_POINT_3_Y, DIRECTION_DOWN);
             }
@@ -297,21 +337,29 @@ public class Lab1 {
         public int ReleaseSemaphore(int sensorSeq, int dir, Integer semIdx) {
 
             if (sensorSeq == 9 && this.holdForkSemIdx != -1 && this.trainDir == DIRECTION_UP) {
+                System.err.println("    ReleaseSemaphore holdForkSemIdx: " + holdForkSemIdx + " sensorID: " + sensorSeq
+                        + " Direction: " + dir);
                 semaphoresArr[this.holdForkSemIdx].release();
             }
+            
             if (semIdx == -1) {
+                System.err.println("ReleaseSemaphore Semaphore is null for sensorID: " + sensorSeq + " Direction: " + dir);
                 return -1;
             }
+
             //release the semaphore occupied by the train at stations
             if ((sensorSeq == 14 && dir == DIRECTION_DOWN) || (sensorSeq == 16 && dir == DIRECTION_DOWN)) {
                 return -1;
             }
+            
             //release the semaphore occupied by the train at stations, these two semaphores are for the trains that start at the terminal sensors
             if (sensorSeq == 13 && dir == DIRECTION_DOWN) {
                 if (semaphoresArr[8].availablePermits() == 0) {
+                    System.err.println("semaphoresArr[8] released");
                     semaphoresArr[8].release();
                 }
                 if (semaphoresArr[7].availablePermits() == 0) {
+                    System.err.println("semaphoresArr[8] released");
                     semaphoresArr[7].release();
                 }
                 return 0;
@@ -320,9 +368,13 @@ public class Lab1 {
             //dont release the semaphore for the fork sensor, release it when the train is completely out of the fork
             if ((semIdx == 4 || semIdx == 5) && this.trainDir == DIRECTION_DOWN) {
                 //this.holdForkSemIdx = semIdx;
+                System.err.println("    HoldSemaphore holdForkSemIdx: " + this.holdForkSemIdx + " sensorID: " + sensorSeq + " Direction: " + dir);
                 return -1;
             }
+
+
             semaphoresArr[semIdx].release();
+            System.err.println("    ReleaseSemaphore released SemaphoreID: " + semIdx + " sensorID: " + sensorSeq + " Direction: " + dir);
             return 0;
         }
     }
