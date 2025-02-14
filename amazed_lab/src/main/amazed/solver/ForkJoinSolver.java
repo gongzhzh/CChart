@@ -1,10 +1,10 @@
 package amazed.solver;
 
 import amazed.maze.Maze;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
-import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.Stack;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * <code>ForkJoinSolver</code> implements a solver for
@@ -15,11 +15,6 @@ public class ForkJoinSolver extends SequentialSolver {
     // Shared flag to indicate when a goal has been found.
     private static final AtomicReference<List<Integer>> solutionPath = new AtomicReference<>(null);
 
-public class ForkJoinSolver
-    extends SequentialSolver
-{
-    private boolean hasFoundGoal = false;
-    public ArrayList<ForkJoinSolver> forklist = new ArrayList<>();
     /**
      * Creates a solver that searches in <code>maze</code> from the start node to a goal.
      *
@@ -27,7 +22,7 @@ public class ForkJoinSolver
      */
     public ForkJoinSolver(Maze maze) {
         super(maze);
-        this.visited = new ConcurrentSkipListSet<>();
+        this.predecessor = new ConcurrentHashMap<>();
     }
 
     /**
@@ -43,74 +38,103 @@ public class ForkJoinSolver
         this.forkAfter = forkAfter;
     }
 
-   /**
-   * Creates a solver that searches in <code>maze</code> from the
-   * start node to a goal.
-   * initialises the start node, visited set and hasFoundGoal
-   * @param maze   the maze to be searched
-   * @param start    start node
-   * @param visited   visited set of nodes
-   * @param hasFound  hasFoundGoal the termination condition
-   */
-    public ForkJoinSolver(Maze maze, int start, Set<Integer> visited, boolean hasFound)
-    {
-        this(maze);
-        this.start = start;
-        this.visited = visited;
-        this.hasFoundGoal = hasFound;
-    }
-
-    /**
-     * Searches for and returns the path, as a list of node
-     * identifiers, that goes from the start node to a goal node in
-     * the maze. If such a path cannot be found (because there are no
-     * goals, or all goals are unreacheable), the method returns
-     * <code>null</code>.
-     *
-     * @return   the list of node identifiers from the start node to a
-     *           goal node in the maze; <code>null</code> if such a path cannot
-     *           be found.
-     */
     @Override
     public List<Integer> compute() {
         System.out.println("ForkJoinSolver is being used!");
         return parallelSearch();
     }
 
-    private List<Integer> parallelSearch()
-    {
-       // one player active on the maze at start
-       int player = maze.newPlayer(start);
-       frontier.push(start);
-       while (!hasFoundGoal & !frontier.isEmpty()) {
-           System.err.println("1");
-           int current = frontier.pop();
-           // mark node as visited
-           maze.move(player, current);
-           visited.add(current);
-           System.err.println("2");
-           // check if current node is a goal
-           if (maze.hasGoal(current)) {
-               hasFoundGoal = true;
-               return pathFromTo(start, current);
-           }
-           for (int nb : maze.neighbors(current)) {
-               if (!visited.contains(nb)) {
-                   System.err.println("3");
-                   frontier.push(nb);
-                   ForkJoinSolver fjs = new ForkJoinSolver(maze, nb, visited, hasFoundGoal);
-                   forklist.add(fjs);
-                   fjs.fork();
-               }
-           }
-       }
-       for (ForkJoinSolver fjs : forklist) {
-           List<Integer> path = fjs.join();
-           if (path != null) {
-               return path;
-           }
-            // all nodes explored, no goal found
-        }
+    private int customStartNode = -1;
+
+    private List<Integer> parallelSearch() {
+        // If a forked task set a custom starting node, use it; otherwise, use the maze’s original start.
+        int startNode = (customStartNode == -1) ? start : customStartNode;
+
+        // **Stop early if a solution has already been found**
+        if (solutionPath.get() != null) {
             return null;
+        }
+
+        // Create a player for animation starting at startNode.
+        int player = maze.newPlayer(startNode);
+        System.out.println("New player created with id: " + player + " at node: " + startNode);
+
+        // Use a local stack to perform DFS (each task has its own stack).
+        Stack<Integer> localFrontier = new Stack<>();
+        localFrontier.push(startNode);
+
+        int steps = 0; // Step counter for fork control.
+        List<ForkJoinSolver> forkedTasks = new java.util.ArrayList<>();
+
+        // Process nodes until there are none left in this task's stack.
+        while (!localFrontier.empty()) {
+            int current = localFrontier.pop();
+
+            // Stop immediately if another thread has found the goal**
+            if (solutionPath.get() != null) {
+                return null;
+            }
+
+            // If the current node is a goal, move there and reconstruct the path.
+            if (maze.hasGoal(current)) {
+                System.out.println("Goal found at node: " + current + " by player " + player);
+                maze.move(player, current);
+
+                // Store the solution path atomically
+                List<Integer> foundPath = pathFromTo(start, current);
+                solutionPath.compareAndSet(null, foundPath); // Ensure only the first thread sets it
+
+                return foundPath;
+            }
+
+            // Ensure that only one task processes this node**
+            if (visited.add(current)) {
+                System.out.println("Player " + player + " moving to node: " + current);
+                maze.move(player, current);
+
+                // Process all neighbors of the current node.
+                for (int nb : maze.neighbors(current)) {
+                    if (!visited.contains(nb)) {  // Check if it's unvisited before doing anything
+                        predecessor.put(nb, current);
+
+                        if (forkAfter > 0 && steps >= forkAfter) {
+                            // Stop forking if the goal is already found
+                            if (solutionPath.get() != null) {
+                                return null;
+                            }
+
+                            System.out.println("Forking a new task from node: " + current + " for neighbor: " + nb);
+
+                            ForkJoinSolver subtask = new ForkJoinSolver(maze, forkAfter);
+                            subtask.visited = visited;
+                            subtask.predecessor = predecessor;
+                            subtask.start = start;
+                            subtask.customStartNode = nb;
+                            subtask.fork();
+                            forkedTasks.add(subtask);
+                        } else {
+                            System.out.println("Player " + player + " exploring neighbor " + nb + " from node: " + current);
+                            localFrontier.push(nb);
+                        }
+                    }
+                }
+                steps++; // Move this outside the loop so steps count properly.
+            }
+        }
+
+        // Join forked tasks and check if any found a solution.
+        for (ForkJoinSolver task : forkedTasks) {
+            if (solutionPath.get() != null) {
+                return solutionPath.get(); // Immediately return the found path
+            }
+            System.out.println("Joining a forked task.");
+            List<Integer> result = task.join();
+            if (result != null) {
+                return result;
+            }
+        }
+
+        // Ensure the solution path is returned if found
+        return solutionPath.get();
     }
 }
