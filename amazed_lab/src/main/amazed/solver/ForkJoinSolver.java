@@ -8,13 +8,12 @@ import java.util.concurrent.ConcurrentSkipListSet;
 
 /**
  * <code>ForkJoinSolver</code> implements a solver for
- * <code>Maze</code> objects using a fork/join multi-thread
- * depth-first search.
- * <p>
- * Instances of <code>ForkJoinSolver</code> should be run by a
- * <code>ForkJoinPool</code> object.
+ * <code>Maze</code> objects using a fork/join multi-thread depth-first search.
  */
+public class ForkJoinSolver extends SequentialSolver {
 
+    // Shared flag to indicate when a goal has been found.
+    private static final AtomicReference<List<Integer>> solutionPath = new AtomicReference<>(null);
 
 public class ForkJoinSolver
     extends SequentialSolver
@@ -22,30 +21,24 @@ public class ForkJoinSolver
     private boolean hasFoundGoal = false;
     public ArrayList<ForkJoinSolver> forklist = new ArrayList<>();
     /**
-     * Creates a solver that searches in <code>maze</code> from the
-     * start node to a goal.
+     * Creates a solver that searches in <code>maze</code> from the start node to a goal.
      *
-     * @param maze   the maze to be searched
+     * @param maze The maze to be searched.
      */
-    public ForkJoinSolver(Maze maze)
-    {
+    public ForkJoinSolver(Maze maze) {
         super(maze);
         this.visited = new ConcurrentSkipListSet<>();
     }
 
     /**
-     * Creates a solver that searches in <code>maze</code> from the
-     * start node to a goal, forking after a given number of visited
-     * nodes.
+     * Creates a solver that searches in <code>maze</code> from the start node to a goal,
+     * forking after a given number of visited nodes.
      *
-     * @param maze        the maze to be searched
-     * @param forkAfter   the number of steps (visited nodes) after
-     *                    which a parallel task is forked; if
-     *                    <code>forkAfter &lt;= 0</code> the solver never
-     *                    forks new tasks
+     * @param maze      The maze to be searched.
+     * @param forkAfter The number of steps (visited nodes) after which a parallel task is forked.
+     *                  If <code>forkAfter <= 0</code>, the solver never forks new tasks.
      */
-    public ForkJoinSolver(Maze maze, int forkAfter)
-    {
+    public ForkJoinSolver(Maze maze, int forkAfter) {
         this(maze);
         this.forkAfter = forkAfter;
     }
@@ -79,8 +72,8 @@ public class ForkJoinSolver
      *           be found.
      */
     @Override
-    public List<Integer> compute()
-    {
+    public List<Integer> compute() {
+        System.out.println("ForkJoinSolver is being used!");
         return parallelSearch();
     }
 
