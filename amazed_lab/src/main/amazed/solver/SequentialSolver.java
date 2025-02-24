@@ -1,17 +1,15 @@
 package amazed.solver;
 
 import amazed.maze.Maze;
-
-import java.util.concurrent.RecursiveTask;
-
-import java.util.List;
-import java.util.LinkedList;
-import java.util.Map;
-import java.util.HashMap;
-import java.util.Set;
-import java.util.HashSet;
-import java.util.Stack;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.Stack;
+import java.util.concurrent.RecursiveTask;
 
 /**
  * <code>SequentialSolver</code> implements a solver for
@@ -58,7 +56,7 @@ public class SequentialSolver
      */
     protected void initStructures()
     {
-        visited = new HashSet<>();
+        visited = new HashSet<>(); //add concurrent has set in the other file
         predecessor = new HashMap<>();
         frontier = new Stack<>();
     }
