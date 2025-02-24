@@ -1,11 +1,11 @@
 package amazed.solver;
 
 import amazed.maze.Maze;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListSet;
-
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * <code>ForkJoinSolver</code> implements a solver for
  * <code>Maze</code> objects using a fork/join multi-thread
@@ -19,8 +19,10 @@ import java.util.concurrent.ConcurrentSkipListSet;
 public class ForkJoinSolver
     extends SequentialSolver
 {
-    private boolean hasFoundGoal = false;
-    public ArrayList<ForkJoinSolver> forklist = new ArrayList<>();
+    private AtomicBoolean hasFoundGoal = new AtomicBoolean(false);
+    //public ArrayList<ForkJoinSolver> forklist = new ArrayList<>();
+    public List<ForkJoinSolver> forklist = new CopyOnWriteArrayList<>();
+    
     /**
      * Creates a solver that searches in <code>maze</code> from the
      * start node to a goal.
@@ -59,7 +61,7 @@ public class ForkJoinSolver
    * @param visited   visited set of nodes
    * @param hasFound  hasFoundGoal the termination condition
    */
-    public ForkJoinSolver(Maze maze, int start, Set<Integer> visited, boolean hasFound)
+    public ForkJoinSolver(Maze maze, int start, Set<Integer> visited, AtomicBoolean hasFound)
     {
         this(maze);
         this.start = start;
@@ -87,37 +89,55 @@ public class ForkJoinSolver
     private List<Integer> parallelSearch()
     {
        // one player active on the maze at start
-       int player = maze.newPlayer(start);
        frontier.push(start);
-       while (!hasFoundGoal & !frontier.isEmpty()) {
-           System.err.println("1");
+       // terminate when goal is found or frontier is empty (i.e., no more nodes to visit)
+       int player = -1;
+       while (!hasFoundGoal.get() && !frontier.isEmpty()) {
+           if (player == -1)
+               player = maze.newPlayer(start);
            int current = frontier.pop();
-           // mark node as visited
+           //move the player to the current node
            maze.move(player, current);
+           //mark the current node as visited
            visited.add(current);
-           System.err.println("2");
-           // check if current node is a goal
+           // if current node is a goal, return the path from start to goal
            if (maze.hasGoal(current)) {
-               hasFoundGoal = true;
+               hasFoundGoal.set(true);
                return pathFromTo(start, current);
            }
+           boolean firstnode = true;
            for (int nb : maze.neighbors(current)) {
-               if (!visited.contains(nb)) {
-                   System.err.println("3");
-                   frontier.push(nb);
-                   ForkJoinSolver fjs = new ForkJoinSolver(maze, nb, visited, hasFoundGoal);
-                   forklist.add(fjs);
-                   fjs.fork();
+               if (visited.add(nb)) {
+                   //if it is the first node in the list, we add it to the frontier and continue to moving, instead of forking
+                   if (firstnode) {
+                       frontier.push(nb);
+                       firstnode = false;
+                   } else {
+                       ForkJoinSolver fjs = new ForkJoinSolver(maze, nb, visited, hasFoundGoal);
+                       forklist.add(fjs);
+                       fjs.fork();
+                   }
+                   //record path between current and next ppsition
+                   predecessor.put(nb, current);
                }
            }
        }
+       //once stepout from the 'while' join all threads that have led to the path
+       List<Integer> pathToGoal = null;
+       List<Integer> pathToJoin = null;
        for (ForkJoinSolver fjs : forklist) {
-           List<Integer> path = fjs.join();
-           if (path != null) {
-               return path;
+           List<Integer> tmp = fjs.join();
+           if (tmp != null) {
+               pathToGoal = tmp;
            }
-            // all nodes explored, no goal found
-        }
-            return null;
+       }
+       //if a path to goal is found, we join the path from start to the goal
+       //check the pathToGoal, exclude the empty node
+       if (pathToGoal != null && !pathToGoal.isEmpty()) {
+           //join current "start node" to the first node in the path to goal. notice remove the first node otherwise it would be joined twice
+           pathToJoin = pathFromTo(start, pathToGoal.remove(0));
+           pathToJoin.addAll(pathToGoal);
+       }
+       return pathToJoin;
     }
 }
