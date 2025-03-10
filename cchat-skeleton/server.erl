@@ -1,7 +1,18 @@
 -module(server).
--moudle(genserver).
--export([start/1,stop/1]).
+-export([start/1, stop/1]).
 
+-record(server_st, {
+    % list of nicks
+    nicks,
+    % list of atoms of the channels in the server
+    channels
+}).
+
+initial_state() ->
+    #server_st{
+        nicks = [],
+        channels = []
+    }.
 % Start a new server process with the given name
 % Do not change the signature of this function.
 start(ServerAtom) ->
@@ -9,65 +20,56 @@ start(ServerAtom) ->
     % - Spawn a new process which waits for a message, handles it, then loops infinitely
     % - Register this process to ServerAtom
     % - Return the process ID
-    Pid = spawn(fun() -> loop(State, F) end),
-    catch(unregister(ServerAtom)),
-    register(ServerAtom, Pid),
-    Pid.
+    genserver:start(ServerAtom, initial_state(), fun requestProcess/2).
 
 % Stop the server process registered to the given name,
 % together with any other associated processes
 stop(ServerAtom) ->
     % TODO Implement function
     % Return ok
-    ServerAtom!stop,
-    catch(unregister(ServerAtom)),
+    genserver:request(ServerAtom, quit),
+    genserver:stop(ServerAtom),
     ok.
 
-loop(State, F) ->
-  receive
-    {request, From, Ref, Data} ->
-      case catch(F(State, Data)) of
-        {'EXIT', Reason} ->
-          From!{exit, Ref, Reason},
-          loop(State, F);
-        {reply, R, NewState} ->
-          From!{result, Ref, R},
-          loop(NewState, F)
-        end;
-    {update, From, Ref, NewF} ->
-      From ! {ok, Ref},
-      loop(State, NewF);
-    stop ->
-      true
-  end.
+updateNicklist(State, Nick) ->
+    case lists:member(Nick, State#server_st.nicks) of
+        true -> Nicks = State#server_st.nicks;
+        false -> Nicks = [Nick | State#server_st.nicks]
+    end.
+
+%process join request from client
+requestProcess(State, {join, Channel, ClientId, Nick}) ->
+    io:format("join--- ~p~n", [Channel]),
+    case lists:member(Nick, State#server_st.nicks) of
+        true -> Nicks = State#server_st.nicks;
+        false -> Nicks = [Nick | State#server_st.nicks]
+    end,
+    % check if the channel already exists
+    case lists:member(Channel, State#server_st.channels) of
+        true ->
+            %join the channel 
+            Result = genserver:request(list_to_atom(Channel), {join, ClientId}),
+            case Result of
+                ok -> 
+                    {reply, ok, State#server_st{nicks = Nicks, channels = [Channel | State#server_st.channels]}};
+                user_already_joined ->
+                    {reply, user_already_joined, Nicks}
+            end;
+        false ->
+            % if the channel is not in list, create the channel and join
+            %notice the parameter type here. ClientId is a list
+            genserver:start(list_to_atom(Channel), [ClientId], fun channelProcess/2),
+            {reply, ok, State#server_st{nicks = Nicks, channels = [Channel | State#server_st.channels]}}
+    end.
+
+channelProcess(ClientList, {join, Client}) ->
+    case lists:member(Client, ClientList) of
+        true ->
+            {reply, user_already_joined, ClientList};
+        false ->
+            {reply, ok, [Client | ClientList]}
+    end.
+% Channel f
+% Channel
 
 % Send a request to a Pid and wait for a response
-request(Pid, Data) ->
-  request(Pid, Data, 3000).
-
-% Send a request to a Pid and wait for a response
-% With a specified timeout.
-% If Pid is an atom which is not registered: an "error:badarg" error is raised.
-% If timeout expires: a "timeout_error" exception is thrown.
-request(Pid, Data, Timeout) ->
-  Ref = make_ref(),
-  Pid ! {request, self(), Ref, Data},
-  receive
-    {result, Ref, Result} ->
-      Result;
-    {exit, Ref, Reason} ->
-      exit(Reason)
-  after Timeout ->
-    throw(timeout_error)
-  end.
-
-% Update loop function
-update(Pid, Fun) ->
-  Ref = make_ref(),
-  Pid!{update, self(), Ref, Fun},
-  receive
-    {ok, Ref} ->
-      ok
-  end.
-
-

@@ -6,7 +6,8 @@
 -record(client_st, {
     gui, % atom of the GUI process
     nick, % nick/username of the client
-    server % atom of the chat server
+    server, % atom of the chat server
+    channels % list of channels the client is in
 }).
 
 % Return an initial state record. This is called from GUI.
@@ -15,7 +16,8 @@ initial_state(Nick, GUIAtom, ServerAtom) ->
     #client_st{
         gui = GUIAtom,
         nick = Nick,
-        server = ServerAtom
+        server = ServerAtom,
+        channels = []
     }.
 
 % handle/2 handles each kind of request from GUI
@@ -30,18 +32,31 @@ initial_state(Nick, GUIAtom, ServerAtom) ->
 handle(St, {join, Channel}) ->
     % TODO: Implement this function
     % {reply, ok, St} ;
-    {reply, {error, not_implemented, "join not implemented"}, St} ;
+    Result = genserver:request(St#client_st.server, {join, Channel, self(), St#client_st.nick}),
+    case Result of
+        ok ->
+            io:format("asdasdasdß11"),
+            {reply, ok, St#client_st{channels = [Channel | St#client_st.channels]}};
+        user_already_joined ->
+            io:format("asdasdasdß22"),
+            {reply, {error, user_already_joined, "User already joined"}, St};
+        Unknown ->
+            io:format("Received unknown message: ~p~n", [Unknown]),
+            {reply, {error, unknown_error, "Unknown error"}, St}
+    end;
 
 % Leave channel
 handle(St, {leave, Channel}) ->
     % TODO: Implement this function
     % {reply, ok, St} ;
+    genserver:request(St#client_st.server, {leave, Channel}),
     {reply, {error, not_implemented, "leave not implemented"}, St} ;
 
 % Sending message (from GUI, to channel)
 handle(St, {message_send, Channel, Msg}) ->
     % TODO: Implement this function
     % {reply, ok, St} ;
+    genserver:request(St#client_st.server, {message_send, Channel, Msg}),
     {reply, {error, not_implemented, "message sending not implemented"}, St} ;
 
 % This case is only relevant for the distinction assignment!
